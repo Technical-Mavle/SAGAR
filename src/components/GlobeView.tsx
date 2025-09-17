@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { FiArrowLeft, FiFilter, FiPlus, FiActivity, FiTrendingUp, FiSearch, FiX } from 'react-icons/fi';
 import { Project, DataPoint } from '../App';
 import ReactGlobeComponent from './ReactGlobeComponent';
+import { Card, CardTitle, CardDescription, CardSkeletonContainer } from './ui/aceternityCards';
 import { DataService } from '../services/dataService';
 
 interface GlobeViewProps {
@@ -135,7 +136,7 @@ const GlobeView: React.FC<GlobeViewProps> = ({ selectedProject }) => {
 
       <div className="relative pt-20 h-screen flex">
         {/* Floating left sidebar container without solid background */}
-        <motion.div
+        <motion.div 
           className="w-80 backdrop-blur-md border border-white/20 rounded-2xl shadow-2xl shadow-black/20 m-4 p-6 overflow-y-auto scrollbar-hide z-20"
           initial={{ x: -320 }}
           animate={{ x: 0 }}
@@ -348,7 +349,7 @@ const GlobeView: React.FC<GlobeViewProps> = ({ selectedProject }) => {
         {/* Full-area globe background */}
         {!isLoading && (
           <Suspense fallback={null}>
-            <div className="absolute inset-0 bg-transparent">
+            <div className="absolute inset-0 bg-transparent z-0 pointer-events-auto">
               <ReactGlobeComponent
                 dataPoints={filteredData}
                 onDataPointClick={() => {}}
@@ -357,8 +358,8 @@ const GlobeView: React.FC<GlobeViewProps> = ({ selectedProject }) => {
           </Suspense>
         )}
 
-        {/* Center area keeps layout spacing */}
-        <div className="flex-1 relative z-10">
+        {/* Center area keeps layout spacing; do not block pointer events to globe */}
+        <div className="flex-1 relative z-0 pointer-events-none">
           {isLoading && (
             <div className="flex items-center justify-center h-full">
               <div className="text-center">
@@ -367,7 +368,87 @@ const GlobeView: React.FC<GlobeViewProps> = ({ selectedProject }) => {
               </div>
             </div>
           )}
-        </div>
+      </div>
+
+        {/* Bottom-centered search bar styled like the example; separate layer so globe stays interactive */}
+        {!isLoading && (
+          <div className="pointer-events-none absolute inset-x-0 bottom-6 flex justify-center z-20">
+            <form
+              onSubmit={(e) => { e.preventDefault(); }}
+              className="pointer-events-auto w-[min(760px,94%)] bg-black/30 backdrop-blur-md border border-white/15 rounded-2xl shadow-[0_0_0_1px_rgba(255,255,255,0.08)] p-2 pl-4 flex items-center gap-3"
+            >
+              <input
+                type="text"
+                placeholder="Ask the analysis engine..."
+                className="flex-1 bg-transparent outline-none text-white placeholder-white/80 tracking-wide"
+              />
+              <button
+                type="submit"
+                className="px-5 py-2 rounded-xl bg-white/10 border border-white/30 text-white hover:bg-white/15 transition-colors"
+              >
+                Analyze
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* Right-side dataset info cards */}
+        {!isLoading && (
+          <aside className="pointer-events-auto absolute right-4 top-24 z-30 flex flex-col gap-3 w-[300px] max-h-[70vh] overflow-y-auto scrollbar-hide">
+            {/* Helper to compute simple metrics inline */}
+            {(() => {
+              const total = filteredData.length;
+              const uniqueSpeciesCount = new Set(filteredData.map(d => d.scientificName)).size;
+              const uniqueWaterBodiesCount = new Set(filteredData.map(d => d.waterBody).filter(Boolean)).size;
+              const dates = filteredData.map(d => new Date(d.eventDate).getTime()).filter(n => !isNaN(n));
+              const minDate = dates.length ? new Date(Math.min(...dates)).toLocaleDateString() : 'N/A';
+              const maxDate = dates.length ? new Date(Math.max(...dates)).toLocaleDateString() : 'N/A';
+              const depths = filteredData.map(d => [d.minimumDepthInMeters, d.maximumDepthInMeters]).flat().filter(n => typeof n === 'number' && !isNaN(n));
+              const minDepth = depths.length ? Math.min(...depths) : null;
+              const maxDepth = depths.length ? Math.max(...depths) : null;
+
+              return (
+                <>
+                  <Card className="pointer-events-auto">
+                    <CardSkeletonContainer className="h-20" showGradient={false}>
+                      <div />
+                    </CardSkeletonContainer>
+                    <CardTitle>Total Occurrences</CardTitle>
+                    <CardDescription className="text-2xl font-semibold tracking-wide text-marine-cyan">{total}</CardDescription>
+                  </Card>
+                  <Card className="pointer-events-auto">
+                    <CardSkeletonContainer className="h-20" showGradient={false}>
+                      <div />
+                    </CardSkeletonContainer>
+                    <CardTitle>Unique Species</CardTitle>
+                    <CardDescription className="text-2xl font-semibold tracking-wide text-marine-cyan">{uniqueSpeciesCount}</CardDescription>
+                  </Card>
+                  <Card className="pointer-events-auto">
+                    <CardSkeletonContainer className="h-20" showGradient={false}>
+                      <div />
+                    </CardSkeletonContainer>
+                    <CardTitle>Water Bodies Covered</CardTitle>
+                    <CardDescription className="text-2xl font-semibold tracking-wide text-marine-cyan">{uniqueWaterBodiesCount}</CardDescription>
+                  </Card>
+                  <Card className="pointer-events-auto">
+                    <CardSkeletonContainer className="h-16" showGradient={false}>
+                      <div />
+                    </CardSkeletonContainer>
+                    <CardTitle>Date Range</CardTitle>
+                    <CardDescription className="text-white/80">{minDate} — {maxDate}</CardDescription>
+                  </Card>
+                  <Card className="pointer-events-auto">
+                    <CardSkeletonContainer className="h-16" showGradient={false}>
+                      <div />
+                    </CardSkeletonContainer>
+                    <CardTitle>Depth Range</CardTitle>
+                    <CardDescription className="text-white/80">{minDepth !== null && maxDepth !== null ? `${minDepth}m — ${maxDepth}m` : 'N/A'}</CardDescription>
+                  </Card>
+                </>
+              );
+            })()}
+          </aside>
+        )}
       </div>
     </div>
   );

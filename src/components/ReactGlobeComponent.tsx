@@ -46,29 +46,46 @@ const ReactGlobeComponent: React.FC<ReactGlobeComponentProps> = ({
     }
   };
 
-  // Auto-rotate the globe
+  // Auto-rotate the globe and set dark styling
   useEffect(() => {
     if (globeRef.current) {
-      globeRef.current.controls().autoRotate = true;
-      globeRef.current.controls().autoRotateSpeed = 0.5;
+      const controls = globeRef.current.controls?.();
+      if (controls) {
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 1.0;
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.enableRotate = true;
+        controls.enableZoom = true;
+        controls.enablePan = true;
+      }
+
+      // Dark theme tuning (react-globe.gl exposes ThreeJS objects via scene())
+      try {
+        const g = globeRef.current;
+        g.showAtmosphere(true);
+        g.atmosphereColor('#ffffff');
+        g.atmosphereAltitude(0.08);
+      } catch {}
     }
   }, []);
 
   return (
-    <div style={{ width: '100%', height: '100%' }}>
+    <div style={{ width: '100%', height: '100%', backgroundColor: 'black' }}>
       <Globe
         ref={globeRef}
-        globeImageUrl="//unpkg.com/three-globe/example/img/earth-day.jpg"
+        globeImageUrl="//unpkg.com/three-globe/example/img/earth-night.jpg"
         bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
-        showAtmosphere={true}
-        atmosphereColor="#00d4ff"
-        atmosphereAltitude={0.1}
+        showAtmosphere
+        atmosphereColor="#ffffff"
+        atmosphereAltitude={0.08}
         pointsData={globeData}
-        pointColor="color"
-        pointAltitude={0.01}
-        pointRadius={0.5}
-        pointResolution={8}
+        pointColor={() => 'rgba(255,255,255,0.9)'}
+        pointAltitude={0.015}
+        pointRadius={0.55}
+        pointResolution={6}
         pointsMerge={false}
+        enablePointerInteraction
         onPointClick={handlePointClick}
       />
     </div>
