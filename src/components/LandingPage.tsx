@@ -1,5 +1,4 @@
 import React, { useEffect, useRef } from 'react';
-import * as anime from 'animejs';
 import WorldMap from './ui/world-map';
 
 const LandingPage: React.FC<{ onEnter: () => void }>= ({ onEnter }) => {
@@ -8,10 +7,26 @@ const LandingPage: React.FC<{ onEnter: () => void }>= ({ onEnter }) => {
   const ctaRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    (anime as any).timeline({ easing: 'easeOutQuad' })
-      .add({ targets: titleRef.current, translateY: [20, 0], opacity: [0, 1], duration: 700 })
-      .add({ targets: subtitleRef.current, translateY: [20, 0], opacity: [0, 1], duration: 600 }, '-=300')
-      .add({ targets: ctaRef.current, scale: [0.9, 1], opacity: [0, 1], duration: 500 }, '-=250');
+    const title = titleRef.current;
+    const subtitle = subtitleRef.current;
+    const cta = ctaRef.current;
+
+    if (!title || !subtitle || !cta) return;
+
+    title.animate([
+      { transform: 'translateY(20px)', opacity: 0 },
+      { transform: 'translateY(0)', opacity: 1 }
+    ], { duration: 700, easing: 'ease-out', fill: 'forwards' });
+
+    subtitle.animate([
+      { transform: 'translateY(20px)', opacity: 0 },
+      { transform: 'translateY(0)', opacity: 1 }
+    ], { duration: 600, delay: 300, easing: 'ease-out', fill: 'forwards' });
+
+    cta.animate([
+      { transform: 'scale(0.9)', opacity: 0 },
+      { transform: 'scale(1)', opacity: 1 }
+    ], { duration: 500, delay: 550, easing: 'ease-out', fill: 'forwards' });
   }, []);
 
   return (
@@ -22,10 +37,10 @@ const LandingPage: React.FC<{ onEnter: () => void }>= ({ onEnter }) => {
         </div>
       </div>
       <div className="relative z-10 max-w-5xl mx-auto px-6 py-24 text-center">
-        <h1 ref={titleRef} className="text-5xl md:text-6xl font-extrabold tracking-tight">
+        <h1 ref={titleRef} className="text-5xl md:text-6xl font-extrabold tracking-tight" style={{ transform: 'translateY(20px)', opacity: 0 }}>
           SAGAR
         </h1>
-        <p ref={subtitleRef} className="mt-4 text-lg text-gray-300">
+        <p ref={subtitleRef} className="mt-4 text-lg text-gray-300" style={{ transform: 'translateY(20px)', opacity: 0 }}>
           Spatio-temporal Analytics Gateway for Aquatic Resources
         </p>
         <div className="mt-10 flex justify-center gap-4">
@@ -33,6 +48,7 @@ const LandingPage: React.FC<{ onEnter: () => void }>= ({ onEnter }) => {
             ref={ctaRef}
             onClick={onEnter}
             className="px-6 py-3 bg-gradient-to-r from-marine-cyan to-marine-green text-marine-blue font-semibold rounded-lg hover:shadow-lg hover:shadow-marine-cyan/25 transition-all"
+            style={{ transform: 'scale(0.9)', opacity: 0 }}
           >
             Enter Dashboard
           </button>
