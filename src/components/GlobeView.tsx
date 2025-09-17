@@ -5,12 +5,14 @@ import { Project, DataPoint } from '../App';
 import ReactGlobeComponent from './ReactGlobeComponent';
 import { Card, CardTitle, CardDescription, CardSkeletonContainer } from './ui/aceternityCards';
 import { DataService } from '../services/dataService';
+import { SearchResultSummary } from './SearchResultsView';
 
 interface GlobeViewProps {
   selectedProject: Project | null;
+  onShowSearchResults?: (result: SearchResultSummary) => void;
 }
 
-const GlobeView: React.FC<GlobeViewProps> = ({ selectedProject }) => {
+const GlobeView: React.FC<GlobeViewProps> = ({ selectedProject, onShowSearchResults }) => {
   const [dataPoints, setDataPoints] = useState<DataPoint[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [dataLayer, setDataLayer] = useState<'Species Occurrences' | 'Sea Surface Temperature (SST)' | 'Salinity' | 'Chlorophyll Concentration' | 'eDNA Detections'>('Species Occurrences');
@@ -91,6 +93,33 @@ const GlobeView: React.FC<GlobeViewProps> = ({ selectedProject }) => {
     'Deep sea survey completed successfully'
   ];
 
+  // Helper functions to generate chart data
+  const generateOccurrencesByYear = (data: DataPoint[]) => {
+    const yearCounts: { [year: number]: number } = {};
+    data.forEach(point => {
+      const year = new Date(point.eventDate).getFullYear();
+      if (!isNaN(year)) {
+        yearCounts[year] = (yearCounts[year] || 0) + 1;
+      }
+    });
+    return Object.entries(yearCounts).map(([year, count]) => ({
+      year: parseInt(year),
+      count
+    })).sort((a, b) => a.year - b.year);
+  };
+
+  const generateDepthHistogram = (data: DataPoint[]) => {
+    const depthCounts: { [depth: number]: number } = {};
+    data.forEach(point => {
+      const avgDepth = Math.round((point.minimumDepthInMeters + point.maximumDepthInMeters) / 2);
+      depthCounts[avgDepth] = (depthCounts[avgDepth] || 0) + 1;
+    });
+    return Object.entries(depthCounts).map(([depth, count]) => ({
+      depth: parseInt(depth),
+      count
+    })).sort((a, b) => a.depth - b.depth);
+  };
+
   const handleAnalyze = async () => {
     if (!analysisInput.trim()) return;
     setIsAnalyzing(true);
@@ -102,9 +131,54 @@ const GlobeView: React.FC<GlobeViewProps> = ({ selectedProject }) => {
     await new Promise(r => setTimeout(r, 1200));
     await new Promise(r => setTimeout(r, 1200));
     await new Promise(r => setTimeout(r, 800));
+    
+    // Generate mock search result based on filtered data
+    const mockResult: SearchResultSummary = {
+      scientificName: analysisInput.trim() || 'Species Analysis',
+      description: `Analysis results for "${analysisInput.trim()}" based on ${filteredData.length} filtered occurrences. This species shows interesting distribution patterns across the marine environment.`,
+      locality: filteredData.length > 0 ? filteredData[0].locality : 'Unknown',
+      basisOfRecord: filteredData.length > 0 ? 'Preserved Specimen' : 'Unknown',
+      minDepthInMeters: filteredData.length > 0 ? Math.min(...filteredData.map(d => d.minimumDepthInMeters)) : null,
+      maxDepthInMeters: filteredData.length > 0 ? Math.max(...filteredData.map(d => d.maximumDepthInMeters)) : null,
+      coordinates: filteredData.length > 0 ? {
+        lat: filteredData[0].decimalLatitude,
+        lng: filteredData[0].decimalLongitude
+      } : null,
+      occurrencesByYear: generateOccurrencesByYear(filteredData),
+      depthHistogram: generateDepthHistogram(filteredData)
+    };
+    
     setInsight('Insight: The species Puerulus sewelli is frequently found in the Andaman Sea at depths between 300-500m. This correlates with areas of lower oxygen concentration.');
     setIsAnalyzing(false);
     setAnalysisInput('');
+    
+    // Create transition overlay by cloning the current globe canvas
+    try {
+      const globeWrapper = document.querySelector('.sagar-main-globe') as HTMLElement | null;
+      const globeCanvas = globeWrapper?.querySelector('canvas') as HTMLCanvasElement | null;
+      if (globeCanvas) {
+        const from = globeCanvas.getBoundingClientRect();
+        const overlay = document.createElement('div');
+        overlay.style.position = 'fixed';
+        overlay.style.left = from.left + 'px';
+        overlay.style.top = from.top + 'px';
+        overlay.style.width = from.width + 'px';
+        overlay.style.height = from.height + 'px';
+        overlay.style.borderRadius = '16px';
+        overlay.style.overflow = 'hidden';
+        overlay.style.zIndex = '9999';
+        overlay.style.pointerEvents = 'none';
+        const clone = globeCanvas.cloneNode(true) as HTMLCanvasElement;
+        overlay.appendChild(clone);
+        document.body.appendChild(overlay);
+        (window as any).__sagarTransition = { overlay };
+      }
+    } catch {}
+
+    // Show search results
+    if (onShowSearchResults) {
+      onShowSearchResults(mockResult);
+    }
   };
 
   return (
@@ -349,7 +423,7 @@ const GlobeView: React.FC<GlobeViewProps> = ({ selectedProject }) => {
         {/* Full-area globe background */}
         {!isLoading && (
           <Suspense fallback={null}>
-            <div className="absolute inset-0 bg-transparent z-0 pointer-events-auto">
+            <div className="absolute inset-0 bg-transparent z-0 pointer-events-auto sagar-main-globe">
               <ReactGlobeComponent
                 dataPoints={filteredData}
                 onDataPointClick={() => {}}
@@ -374,13 +448,15 @@ const GlobeView: React.FC<GlobeViewProps> = ({ selectedProject }) => {
         {!isLoading && (
           <div className="pointer-events-none absolute inset-x-0 bottom-6 flex justify-center z-20">
             <form
-              onSubmit={(e) => { e.preventDefault(); }}
+              onSubmit={(e) => { e.preventDefault(); handleAnalyze(); }}
               className="pointer-events-auto w-[min(760px,94%)] bg-black/30 backdrop-blur-md border border-white/15 rounded-2xl shadow-[0_0_0_1px_rgba(255,255,255,0.08)] p-2 pl-4 flex items-center gap-3"
             >
               <input
                 type="text"
                 placeholder="Ask the analysis engine..."
                 className="flex-1 bg-transparent outline-none text-white placeholder-white/80 tracking-wide"
+                value={analysisInput}
+                onChange={(e) => setAnalysisInput(e.target.value)}
               />
               <button
                 type="submit"

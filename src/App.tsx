@@ -4,6 +4,7 @@ import Dashboard from './components/Dashboard';
 import LandingPage from './components/LandingPage';
 import GlobeView from './components/GlobeView';
 import LoaderOverlay from './components/LoaderOverlay';
+import SearchResultsView, { SearchResultSummary } from './components/SearchResultsView';
 import './App.css';
 
 export interface Project {
@@ -30,9 +31,10 @@ export interface DataPoint {
 }
 
 function App() {
-  const [currentView, setCurrentView] = useState<'landing' | 'dashboard' | 'globe'>('landing');
+  const [currentView, setCurrentView] = useState<'landing' | 'dashboard' | 'search' | 'globe'>('landing');
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [showLoader, setShowLoader] = React.useState(false);
+  const [searchResult, setSearchResult] = React.useState<SearchResultSummary | null>(null);
 
   const handleProjectSelect = (project: Project) => {
     console.log('App: Project selected, navigating to globe view');
@@ -59,10 +61,12 @@ function App() {
   }, []);
 
 
+
   console.log('App: Current view:', currentView, 'Selected project:', selectedProject?.title);
 
+  const rootBgClass = currentView === 'search' ? 'bg-black' : 'bg-marine-blue';
   return (
-    <div className="min-h-screen bg-marine-blue text-white">
+    <div className={`min-h-screen ${rootBgClass} text-white`}>
       <LoaderOverlay visible={showLoader} />
       <AnimatePresence mode="wait">
         {currentView === 'landing' ? (
@@ -85,6 +89,31 @@ function App() {
           >
             <Dashboard onProjectSelect={handleProjectSelect} />
           </motion.div>
+        ) : currentView === 'search' ? (
+          <motion.div
+            key="search"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            {searchResult && (
+              <div className="pt-24 px-6 max-w-7xl mx-auto">
+                <SearchResultsView
+                  result={searchResult}
+                  onViewOnGlobe={() => setCurrentView('globe')}
+                  onBack={() => {
+                    const t = (window as any).__sagarTransition;
+                    if (t?.overlay) {
+                      t.overlay.remove();
+                      (window as any).__sagarTransition = undefined;
+                    }
+                    setCurrentView('globe');
+                  }}
+                />
+              </div>
+            )}
+          </motion.div>
         ) : (
           <motion.div
             key="globe"
@@ -95,6 +124,14 @@ function App() {
           >
             <GlobeView 
               selectedProject={selectedProject}
+              onShowSearchResults={(result) => {
+                // Show loader during transition into SearchResultsView
+                setShowLoader(true);
+                setSearchResult(result);
+                setCurrentView('search');
+                // Hide after brief delay to cover render/texture loads
+                setTimeout(() => setShowLoader(false), 900);
+              }}
             />
           </motion.div>
         )}

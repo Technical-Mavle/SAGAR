@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useMemo } from 'react';
+import React, { useRef, useEffect, useMemo, useState } from 'react';
 import Globe from 'react-globe.gl';
 import { DataPoint } from '../App';
 
@@ -12,6 +12,8 @@ const ReactGlobeComponent: React.FC<ReactGlobeComponentProps> = ({
   onDataPointClick 
 }) => {
   const globeRef = useRef<any>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [dimensions, setDimensions] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
 
   // Get color based on water body
   const getWaterBodyColor = (waterBody: string) => {
@@ -70,15 +72,45 @@ const ReactGlobeComponent: React.FC<ReactGlobeComponentProps> = ({
     }
   }, []);
 
+  // Force a resize after mount to ensure canvas sizes correctly in nested layouts
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const ResizeObs = (window as any).ResizeObserver;
+    let ro: any | undefined;
+    if (typeof ResizeObs === 'function') {
+      ro = new ResizeObs((entries: any[]) => {
+        for (const entry of entries) {
+          const cr = entry.contentRect;
+          if (cr.width && cr.height) {
+            setDimensions({ width: Math.floor(cr.width), height: Math.floor(cr.height) });
+          }
+        }
+      });
+      ro.observe(containerRef.current);
+    }
+    // Initial measure
+    const rect = containerRef.current.getBoundingClientRect();
+    if (rect.width && rect.height) {
+      setDimensions({ width: Math.floor(rect.width), height: Math.floor(rect.height) });
+    }
+    return () => {
+      if (ro && typeof ro.disconnect === 'function') {
+        ro.disconnect();
+      }
+    };
+  }, []);
+
   return (
-    <div style={{ width: '100%', height: '100%', backgroundColor: 'black' }}>
+    <div ref={containerRef} style={{ width: '100%', height: '100%', backgroundColor: 'black' }}>
       <Globe
         ref={globeRef}
-        globeImageUrl="//unpkg.com/three-globe/example/img/earth-night.jpg"
-        bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
+        globeImageUrl="https://unpkg.com/three-globe/example/img/earth-night.jpg"
+        bumpImageUrl="https://unpkg.com/three-globe/example/img/earth-topology.png"
         showAtmosphere
         atmosphereColor="#ffffff"
         atmosphereAltitude={0.08}
+        width={dimensions.width || undefined}
+        height={dimensions.height || undefined}
         pointsData={globeData}
         pointColor={() => 'rgba(255,255,255,0.9)'}
         pointAltitude={0.015}
