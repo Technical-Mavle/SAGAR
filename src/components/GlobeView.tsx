@@ -144,11 +144,19 @@ const GlobeView: React.FC<GlobeViewProps> = ({ selectedProject }) => {
       <header className="fixed top-0 left-0 right-0 z-50 bg-marine-blue/95 backdrop-blur-sm border-b border-marine-cyan/20">
         <div className="px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="w-32" />
+            <motion.button
+              onClick={() => window.dispatchEvent(new Event('backToProjects'))}
+              className="flex items-center space-x-2 px-4 py-2 bg-gray-800/50 hover:bg-gray-700/50 border border-gray-600/50 rounded-lg transition-colors duration-200"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <FiArrowLeft className="w-4 h-4" />
+              <span>Back to Projects</span>
+            </motion.button>
 
             <div className="text-center">
               <h1 className="text-xl font-bold text-white">
-                {selectedProject?.title || 'Marine Data Explorer'}
+                {selectedProject?.title || 'SAGAR - (Spatio-temporal Analytics Gateway for Aquatic Resources)'}
               </h1>
               <p className="text-sm text-gray-400">
                 Interactive 3D Globe Visualization

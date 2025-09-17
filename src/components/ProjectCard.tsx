@@ -22,9 +22,20 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onSelect }) => {
     }
   };
 
+  const handleKey = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onSelect();
+    }
+  };
+
   return (
     <motion.div
-      className="group relative bg-gray-900/50 backdrop-blur-sm border border-gray-700/50 rounded-xl p-6 hover:border-marine-cyan/50 hover:shadow-lg hover:shadow-marine-cyan/10 transition-all duration-300"
+      role="button"
+      tabIndex={0}
+      onClick={onSelect}
+      onKeyDown={handleKey}
+      className="group relative cursor-pointer bg-gray-900/50 backdrop-blur-sm border border-gray-700/50 rounded-xl p-6 hover:border-marine-cyan/50 hover:shadow-lg hover:shadow-marine-cyan/10 transition-all duration-300"
       whileHover={{ y: -5 }}
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
@@ -100,10 +111,9 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onSelect }) => {
         </div>
       </motion.div>
 
-      {/* Open Project Button */}
-      <motion.button
-        onClick={onSelect}
-        className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-gradient-to-r from-marine-cyan/20 to-marine-green/20 border border-marine-cyan/30 rounded-lg text-marine-cyan hover:from-marine-cyan/30 hover:to-marine-green/30 hover:border-marine-cyan/50 transition-all duration-200 group"
+      {/* Open Project CTA (visual only; click handled by card) */}
+      <motion.div
+        className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-gradient-to-r from-marine-cyan/20 to-marine-green/20 border border-marine-cyan/30 rounded-lg text-marine-cyan group-hover:from-marine-cyan/30 group-hover:to-marine-green/30 group-hover:border-marine-cyan/50 transition-all duration-200"
         whileHover={{ scale: 1.02 }}
         whileTap={{ scale: 0.98 }}
         initial={{ opacity: 0, y: 20 }}
@@ -112,7 +122,7 @@ const ProjectCard: React.FC<ProjectCardProps> = ({ project, onSelect }) => {
       >
         <span className="font-medium">Open Project</span>
         <FiArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-200" />
-      </motion.button>
+      </motion.div>
     </motion.div>
   );
 };
