@@ -1,24 +1,82 @@
-import React from 'react';
-import logo from './logo.svg';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import Dashboard from './components/Dashboard';
+import GlobeView from './components/GlobeView';
 import './App.css';
 
+export interface Project {
+  id: string;
+  title: string;
+  description: string;
+  date: string;
+  tags: string[];
+  progress: number;
+  waterBody: string;
+}
+
+export interface DataPoint {
+  scientificName: string;
+  locality: string;
+  eventDate: string;
+  decimalLatitude: number;
+  decimalLongitude: number;
+  waterBody: string;
+  samplingProtocol: string;
+  minimumDepthInMeters: number;
+  maximumDepthInMeters: number;
+  identifiedBy: string;
+}
+
 function App() {
+  const [currentView, setCurrentView] = useState<'dashboard' | 'globe'>('dashboard');
+  const [selectedProject, setSelectedProject] = useState<Project | null>(null);
+
+  const handleProjectSelect = (project: Project) => {
+    console.log('App: Project selected, navigating to globe view');
+    setSelectedProject(project);
+    setCurrentView('globe');
+  };
+
+  React.useEffect(() => {
+    const handler = () => {
+      console.log('App: Back to Projects event received');
+      setCurrentView('dashboard');
+      setSelectedProject(null);
+    };
+    window.addEventListener('backToProjects', handler as EventListener);
+    return () => window.removeEventListener('backToProjects', handler as EventListener);
+  }, []);
+
+
+  console.log('App: Current view:', currentView, 'Selected project:', selectedProject?.title);
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div className="min-h-screen bg-marine-blue text-white">
+      <AnimatePresence mode="wait">
+        {currentView === 'dashboard' ? (
+          <motion.div
+            key="dashboard"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Dashboard onProjectSelect={handleProjectSelect} />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="globe"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <GlobeView 
+              selectedProject={selectedProject}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
