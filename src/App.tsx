@@ -61,6 +61,46 @@ function App() {
   }, []);
 
 
+  // Restore view state on first load
+  React.useEffect(() => {
+    try {
+      const savedView = localStorage.getItem('sagar:view');
+      const savedResult = localStorage.getItem('sagar:searchResult');
+      const savedProject = localStorage.getItem('sagar:selectedProject');
+      if (savedView === 'search' && savedResult) {
+        setSearchResult(JSON.parse(savedResult));
+        setCurrentView('search');
+      } else if (savedView === 'globe') {
+        if (savedProject) {
+          setSelectedProject(JSON.parse(savedProject));
+        }
+        setCurrentView('globe');
+      } else if (savedView === 'dashboard') {
+        setCurrentView('dashboard');
+      } else {
+        // default remains 'landing'
+      }
+    } catch {}
+  }, []);
+
+  // Persist view state on change
+  React.useEffect(() => {
+    try {
+      localStorage.setItem('sagar:view', currentView);
+      if (searchResult) {
+        localStorage.setItem('sagar:searchResult', JSON.stringify(searchResult));
+      } else {
+        localStorage.removeItem('sagar:searchResult');
+      }
+      if (selectedProject) {
+        localStorage.setItem('sagar:selectedProject', JSON.stringify(selectedProject));
+      } else {
+        localStorage.removeItem('sagar:selectedProject');
+      }
+    } catch {}
+  }, [currentView, searchResult, selectedProject]);
+
+
 
   console.log('App: Current view:', currentView, 'Selected project:', selectedProject?.title);
 
@@ -103,12 +143,16 @@ function App() {
                   result={searchResult}
                   onViewOnGlobe={() => setCurrentView('globe')}
                   onBack={() => {
+                    // Show loader during transition back to globe
+                    setShowLoader(true);
                     const t = (window as any).__sagarTransition;
                     if (t?.overlay) {
                       t.overlay.remove();
                       (window as any).__sagarTransition = undefined;
                     }
                     setCurrentView('globe');
+                    // Hide loader after brief delay
+                    setTimeout(() => setShowLoader(false), 800);
                   }}
                 />
               </div>
