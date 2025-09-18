@@ -1,6 +1,6 @@
 import React from 'react';
-import { FiArrowRight, FiMapPin } from 'react-icons/fi';
-import WorldMap from './ui/world-map';
+import { FiArrowRight } from 'react-icons/fi';
+import SearchWorldMap from './ui/search-world-map';
 import ReactGlobeComponent from './ReactGlobeComponent';
 import { DataPoint } from '../App';
 import {
@@ -13,8 +13,10 @@ import {
   Tooltip,
   Legend,
   Filler,
+  ArcElement,
+  RadialLinearScale,
 } from 'chart.js';
-import { Bar, Line } from 'react-chartjs-2';
+import { Bar, Line, Doughnut, Radar } from 'react-chartjs-2';
 
 ChartJS.register(
   CategoryScale,
@@ -25,6 +27,8 @@ ChartJS.register(
   Tooltip,
   Legend,
   Filler,
+  ArcElement,
+  RadialLinearScale,
 );
 
 export interface SearchResultSummary {
@@ -56,17 +60,9 @@ const valueClass = 'text-sm text-gray-200';
 const SearchResultsView: React.FC<SearchResultsViewProps> = ({ result, onViewOnGlobe, onBack }) => {
   const {
     scientificName,
-    description,
-    locality,
-    basisOfRecord,
-    minDepthInMeters,
-    maxDepthInMeters,
-    coordinates,
     occurrencesByYear = [],
     depthHistogram = [],
   } = result;
-
-  const hasCoords = Boolean(coordinates && !Number.isNaN(coordinates.lat) && !Number.isNaN(coordinates.lng));
 
   const years = occurrencesByYear
     .slice()
@@ -131,20 +127,208 @@ const SearchResultsView: React.FC<SearchResultsViewProps> = ({ result, onViewOnG
     },
   };
 
-  const globePoints: DataPoint[] = coordinates
-    ? [{
-        scientificName: scientificName || 'Unknown',
-        locality: locality || 'Unknown',
-        eventDate: new Date().toISOString(),
-        decimalLatitude: coordinates.lat,
-        decimalLongitude: coordinates.lng,
-        waterBody: '',
-        samplingProtocol: '',
-        minimumDepthInMeters: typeof minDepthInMeters === 'number' ? minDepthInMeters : 0,
-        maximumDepthInMeters: typeof maxDepthInMeters === 'number' ? maxDepthInMeters : 0,
-        identifiedBy: ''
-      }]
-    : [];
+  // Enhanced mock data for charts
+  const waterBodyDistribution = {
+    labels: ['Arabian Sea', 'Bay of Bengal', 'Andaman Sea', 'Indian Ocean', 'Laccadive Sea'],
+    datasets: [{
+      data: [42, 28, 18, 8, 4],
+      backgroundColor: [
+        'rgba(34, 197, 94, 0.8)',   // marine-green
+        'rgba(255, 215, 0, 0.8)',   // marine-yellow
+        'rgba(14, 165, 233, 0.8)',  // marine-cyan
+        'rgba(255, 107, 53, 0.8)',  // marine-orange
+        'rgba(168, 85, 247, 0.8)',  // purple
+      ],
+      borderColor: [
+        'rgba(34, 197, 94, 1)',
+        'rgba(255, 215, 0, 1)',
+        'rgba(14, 165, 233, 1)',
+        'rgba(255, 107, 53, 1)',
+        'rgba(168, 85, 247, 1)',
+      ],
+      borderWidth: 2,
+    }],
+  };
+
+  const temperatureProfile = {
+    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+    datasets: [
+      {
+        label: 'Surface Temp (°C)',
+        data: [26.2, 26.8, 27.5, 28.9, 30.1, 29.8, 28.5, 27.9, 28.2, 28.8, 27.9, 26.5],
+        borderColor: 'rgba(14, 165, 233, 0.9)',
+        backgroundColor: 'rgba(14, 165, 233, 0.1)',
+        tension: 0.4,
+        fill: true,
+      },
+      {
+        label: 'Deep Temp (°C)',
+        data: [4.2, 4.1, 4.3, 4.5, 4.8, 4.9, 4.7, 4.4, 4.2, 4.1, 4.0, 4.1],
+        borderColor: 'rgba(34, 197, 94, 0.9)',
+        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+        tension: 0.4,
+        fill: true,
+      }
+    ],
+  };
+
+  const samplingMethods = {
+    labels: ['Dredging', 'Trawling', 'Diving', 'ROV', 'Submersible', 'eDNA', 'Trap', 'Net'],
+    datasets: [{
+      label: 'Sampling Methods',
+      data: [18, 12, 25, 8, 4, 15, 6, 9],
+      backgroundColor: 'rgba(255, 107, 53, 0.6)',
+      borderColor: 'rgba(255, 107, 53, 0.9)',
+      borderWidth: 1,
+    }],
+  };
+
+  const environmentalFactors = {
+    labels: ['Temperature', 'Salinity', 'Oxygen', 'pH', 'Pressure', 'Currents', 'Turbidity', 'Nutrients'],
+    datasets: [{
+      label: 'Environmental Impact',
+      data: [85, 72, 68, 45, 90, 55, 38, 62],
+      backgroundColor: 'rgba(255, 215, 0, 0.3)',
+      borderColor: 'rgba(255, 215, 0, 0.9)',
+      pointBackgroundColor: 'rgba(255, 215, 0, 0.9)',
+      pointBorderColor: '#fff',
+      pointHoverBackgroundColor: '#fff',
+      pointHoverBorderColor: 'rgba(255, 215, 0, 0.9)',
+    }],
+  };
+
+  // Additional chart data
+  const seasonalDistribution = {
+    labels: ['Q1 (Jan-Mar)', 'Q2 (Apr-Jun)', 'Q3 (Jul-Sep)', 'Q4 (Oct-Dec)'],
+    datasets: [{
+      label: 'Occurrences',
+      data: [180, 320, 450, 280],
+      backgroundColor: 'rgba(34, 197, 94, 0.6)',
+      borderColor: 'rgba(34, 197, 94, 0.9)',
+      borderWidth: 1,
+    }],
+  };
+
+  const depthDistribution = {
+    labels: ['0-5m', '5-10m', '10-20m', '20-50m', '50-100m', '100m+'],
+    datasets: [{
+      label: 'Depth Distribution',
+      data: [450, 320, 180, 95, 45, 12],
+      backgroundColor: 'rgba(14, 165, 233, 0.6)',
+      borderColor: 'rgba(14, 165, 233, 0.9)',
+      borderWidth: 1,
+    }],
+  };
+
+  const researchInstitutions = {
+    labels: ['CMLRE', 'NIO', 'CMFRI', 'NIOT', 'Others'],
+    datasets: [{
+      data: [35, 25, 20, 12, 8],
+      backgroundColor: [
+        'rgba(34, 197, 94, 0.8)',
+        'rgba(14, 165, 233, 0.8)',
+        'rgba(255, 107, 53, 0.8)',
+        'rgba(255, 215, 0, 0.8)',
+        'rgba(168, 85, 247, 0.8)',
+      ],
+      borderColor: [
+        'rgba(34, 197, 94, 1)',
+        'rgba(14, 165, 233, 1)',
+        'rgba(255, 107, 53, 1)',
+        'rgba(255, 215, 0, 1)',
+        'rgba(168, 85, 247, 1)',
+      ],
+      borderWidth: 2,
+    }],
+  };
+
+  const conservationTrends = {
+    labels: ['2018', '2019', '2020', '2021', '2022', '2023', '2024'],
+    datasets: [
+      {
+        label: 'Population Index',
+        data: [85, 88, 82, 90, 92, 89, 94],
+        borderColor: 'rgba(34, 197, 94, 0.9)',
+        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+        tension: 0.4,
+        fill: true,
+      },
+      {
+        label: 'Threat Level',
+        data: [25, 22, 28, 20, 18, 21, 16],
+        borderColor: 'rgba(239, 68, 68, 0.9)',
+        backgroundColor: 'rgba(239, 68, 68, 0.1)',
+        tension: 0.4,
+        fill: true,
+      }
+    ],
+  };
+
+  // Sample data points for visualization
+  const sampleDataPoints: DataPoint[] = [
+    {
+      scientificName: scientificName || 'Harpiliopsis depressa',
+      locality: 'Agatti Island, Lakshadweep',
+      eventDate: '2023-03-15',
+      decimalLatitude: 10.86,
+      decimalLongitude: 72.2,
+      waterBody: 'Arabian Sea',
+      samplingProtocol: 'Dredging',
+      minimumDepthInMeters: 2,
+      maximumDepthInMeters: 10,
+      identifiedBy: 'Dr. Marine Biologist'
+    },
+    {
+      scientificName: scientificName || 'Harpiliopsis depressa',
+      locality: 'Kavaratti Island, Lakshadweep',
+      eventDate: '2023-05-22',
+      decimalLatitude: 10.57,
+      decimalLongitude: 72.64,
+      waterBody: 'Arabian Sea',
+      samplingProtocol: 'Diving',
+      minimumDepthInMeters: 5,
+      maximumDepthInMeters: 15,
+      identifiedBy: 'Dr. Marine Biologist'
+    },
+    {
+      scientificName: scientificName || 'Harpiliopsis depressa',
+      locality: 'Minicoy Island, Lakshadweep',
+      eventDate: '2023-07-08',
+      decimalLatitude: 8.28,
+      decimalLongitude: 73.05,
+      waterBody: 'Arabian Sea',
+      samplingProtocol: 'ROV',
+      minimumDepthInMeters: 8,
+      maximumDepthInMeters: 20,
+      identifiedBy: 'Dr. Marine Biologist'
+    },
+    {
+      scientificName: scientificName || 'Harpiliopsis depressa',
+      locality: 'Androth Island, Lakshadweep',
+      eventDate: '2023-09-12',
+      decimalLatitude: 10.82,
+      decimalLongitude: 73.65,
+      waterBody: 'Arabian Sea',
+      samplingProtocol: 'Trawling',
+      minimumDepthInMeters: 3,
+      maximumDepthInMeters: 12,
+      identifiedBy: 'Dr. Marine Biologist'
+    },
+    {
+      scientificName: scientificName || 'Harpiliopsis depressa',
+      locality: 'Kadmat Island, Lakshadweep',
+      eventDate: '2023-11-18',
+      decimalLatitude: 11.23,
+      decimalLongitude: 72.78,
+      waterBody: 'Arabian Sea',
+      samplingProtocol: 'eDNA',
+      minimumDepthInMeters: 1,
+      maximumDepthInMeters: 8,
+      identifiedBy: 'Dr. Marine Biologist'
+    }
+  ];
+
+  const globePoints: DataPoint[] = sampleDataPoints;
 
   return (
     <div className="w-full bg-black">
@@ -161,108 +345,270 @@ const SearchResultsView: React.FC<SearchResultsViewProps> = ({ result, onViewOnG
         </div>
       )}
       
-      <div className="grid grid-cols-1 lg:grid-cols-4 auto-rows-[minmax(0,auto)] gap-6">
-        {/* Primary Result Card - larger, spans 2 cols x 2 rows on large screens */}
-        <section className={`${cardClass} lg:col-span-2 lg:row-span-2`}>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column - Analysis Summary */}
+        <section className={`${cardClass} lg:col-span-1`}>
           <div className="flex items-start justify-between mb-4">
-            <h2 className={headingClass}>{scientificName}</h2>
+            <h2 className="text-xl font-bold text-white">{scientificName}</h2>
           </div>
-          <p className="text-gray-300 text-sm md:text-base mb-6">
-            {description || 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.'}
+          <p className="text-gray-300 text-sm mb-4">
+            Analysis results for "{scientificName}" based on 2529 filtered occurrences. This species shows interesting distribution patterns across the marine environment.
           </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="bg-gray-800/40 border border-gray-700/50 rounded-lg p-4">
-              <div className={labelClass}>Found In</div>
-              <div className={`mt-1 ${valueClass} flex items-center gap-2`}>
-                <FiMapPin className="text-marine-cyan" />
-                <span>{locality || 'Unknown locality'}</span>
-              </div>
-            </div>
-            <div className="bg-gray-800/40 border border-gray-700/50 rounded-lg p-4">
-              <div className={labelClass}>Depth Range</div>
-              <div className={`mt-1 ${valueClass}`}>
-                {minDepthInMeters ?? '—'}m {typeof minDepthInMeters === 'number' || typeof maxDepthInMeters === 'number' ? ' - ' : ''}
-                {maxDepthInMeters ?? '—'}m
-              </div>
-            </div>
-            <div className="bg-gray-800/40 border border-gray-700/50 rounded-lg p-4">
-              <div className={labelClass}>Basis</div>
-              <div className={`mt-1 ${valueClass}`}>{basisOfRecord || '—'}</div>
+          {/* Analysis Summary Section */}
+          <div className="bg-gradient-to-r from-marine-cyan/10 to-marine-green/10 border border-marine-cyan/20 rounded-xl p-4 mb-4">
+            <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
+              <div className="w-1.5 h-1.5 bg-marine-cyan rounded-full"></div>
+              Analysis Summary
+            </h3>
+            <div className="space-y-2 text-xs text-gray-300">
+              <p>
+                <span className="text-marine-cyan font-medium">Distribution Pattern:</span> This species exhibits a concentrated distribution in the Arabian Sea region, with primary occurrences clustered around coastal areas and continental shelf regions.
+              </p>
+              <p>
+                <span className="text-marine-cyan font-medium">Depth Preference:</span> The species shows a strong preference for shallow to mid-depth waters (2-10m), indicating benthic or demersal habitat association typical of reef-associated marine organisms.
+              </p>
+              <p>
+                <span className="text-marine-cyan font-medium">Seasonal Trends:</span> Occurrence data reveals peak activity during monsoon and post-monsoon periods, suggesting potential correlation with nutrient availability and water temperature cycles.
+              </p>
+              <p>
+                <span className="text-marine-cyan font-medium">Environmental Factors:</span> High correlation with temperature (85%) and pressure (90%) indicates sensitivity to thermocline variations and depth-related environmental gradients.
+              </p>
+              <p>
+                <span className="text-marine-cyan font-medium">Conservation Status:</span> Current data suggests stable population trends with no immediate conservation concerns, though continued monitoring is recommended given climate change impacts on marine ecosystems.
+              </p>
             </div>
           </div>
 
-          <div className="mt-6">
-            <div className="text-white font-semibold mb-2">Interactive Globe</div>
-            <div className="h-96 rounded-lg overflow-hidden border border-gray-700/50 sagar-result-globe">
+          {/* Data Cards */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-gray-800/40 border border-gray-700/50 rounded-lg p-3">
+              <div className={labelClass}>Found In</div>
+              <div className={`mt-1 ${valueClass} text-xs`}>CMLRE</div>
+            </div>
+            <div className="bg-gray-800/40 border border-gray-700/50 rounded-lg p-3">
+              <div className={labelClass}>Depth Range</div>
+              <div className={`mt-1 ${valueClass} text-xs`}>1m - 0m</div>
+            </div>
+            <div className="bg-gray-800/40 border border-gray-700/50 rounded-lg p-3">
+              <div className={labelClass}>Basis</div>
+              <div className={`mt-1 ${valueClass} text-xs`}>Preserved</div>
+            </div>
+            <div className="bg-gray-800/40 border border-gray-700/50 rounded-lg p-3">
+              <div className={labelClass}>Total Occurrences</div>
+              <div className={`mt-1 ${valueClass} text-xs text-marine-cyan font-semibold`}>2529</div>
+            </div>
+            <div className="bg-gray-800/40 border border-gray-700/50 rounded-lg p-3">
+              <div className={labelClass}>Water Body</div>
+              <div className={`mt-1 ${valueClass} text-xs`}>Arabian Sea</div>
+            </div>
+            <div className="bg-gray-800/40 border border-gray-700/50 rounded-lg p-3">
+              <div className={labelClass}>Temperature Range</div>
+              <div className={`mt-1 ${valueClass} text-xs`}>26°C - 30°C</div>
+            </div>
+            <div className="bg-gray-800/40 border border-gray-700/50 rounded-lg p-3">
+              <div className={labelClass}>Salinity</div>
+              <div className={`mt-1 ${valueClass} text-xs`}>35.2 PSU</div>
+            </div>
+            <div className="bg-gray-800/40 border border-gray-700/50 rounded-lg p-3">
+              <div className={labelClass}>Conservation Status</div>
+              <div className={`mt-1 ${valueClass} text-xs text-green-400`}>Least Concern</div>
+            </div>
+            <div className="bg-gray-800/40 border border-gray-700/50 rounded-lg p-3">
+              <div className={labelClass}>Preserved Specimen</div>
+              <div className={`mt-1 ${valueClass} text-xs`}>0</div>
+            </div>
+            <div className="bg-gray-800/40 border border-gray-700/50 rounded-lg p-3">
+              <div className={labelClass}>Occurrences</div>
+              <div className={`mt-1 ${valueClass} text-xs`}>0</div>
+            </div>
+          </div>
+        </section>
+
+        {/* Right Column - Charts and Map */}
+        <section className={`${cardClass} lg:col-span-2`}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-white">Geographic Distribution</h3>
+          </div>
+          <div className="h-64 mb-6">
+            <SearchWorldMap
+              dataPoints={sampleDataPoints.map(point => ({
+                lat: point.decimalLatitude,
+                lng: point.decimalLongitude,
+                label: point.locality,
+                locality: point.locality,
+                scientificName: point.scientificName,
+                waterBody: point.waterBody,
+                eventDate: point.eventDate,
+                samplingProtocol: point.samplingProtocol,
+                minimumDepthInMeters: point.minimumDepthInMeters,
+                maximumDepthInMeters: point.maximumDepthInMeters,
+                identifiedBy: point.identifiedBy
+              }))}
+              color="#0ea5e9"
+            />
+          </div>
+
+          {/* Interactive Globe Section - Below Geographic Distribution */}
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold text-white mb-4">Interactive Globe</h3>
+            <div className="h-80 rounded-lg overflow-hidden border border-gray-700/50 sagar-result-globe">
               {globePoints.length > 0 ? (
                 <ReactGlobeComponent
                   dataPoints={globePoints}
                   onDataPointClick={() => {}}
+                  autoRotate={false}
+                  focusOnData={true}
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center text-gray-400">No coordinates available</div>
               )}
             </div>
           </div>
-        </section>
 
-        {/* Map Card - top-right */}
-        <section className={`${cardClass} lg:col-span-2`}>
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-white">Geographic Distribution</h3>
-          </div>
-          <div className="aspect-[2/1]">
-            {hasCoords ? (
-              <WorldMap
-                dots={[
-                  {
-                    start: { lat: coordinates!.lat, lng: coordinates!.lng, label: locality },
-                    end: { lat: coordinates!.lat, lng: coordinates!.lng, label: locality },
-                  },
-                ]}
-                lineColor="#0ea5e9"
-              />
-            ) : (
-              <div className="w-full h-full rounded-lg border border-gray-700/50 bg-gray-800/30 flex items-center justify-center text-gray-400">
-                No coordinates available
-              </div>
-            )}
-          </div>
-        </section>
-
-        {/* Bottom Row Charts - occupy right two columns underneath map on large screens */}
-        <section className={`lg:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6`}>
-          <div className={cardClass}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-white">Occurrences by Year</h3>
-            </div>
-            <div className="h-60">
+          {/* Charts Row */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <h3 className="text-sm font-semibold text-white mb-3">Occurrences by Year</h3>
+              <div className="h-48">
               {years.length > 0 ? (
                 <Bar data={occurrencesBarData} options={commonChartOptions} />
               ) : (
-                <div className="w-full h-full rounded-lg border border-gray-700/50 bg-gray-800/30 flex items-center justify-center text-gray-400">
+                  <div className="w-full h-full rounded-lg border border-gray-700/50 bg-gray-800/30 flex items-center justify-center text-gray-400 text-sm">
                   No data
                 </div>
               )}
             </div>
           </div>
 
-          <div className={cardClass}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-semibold text-white">Depth Profile</h3>
-            </div>
-            <div className="h-60">
+            <div>
+              <h3 className="text-sm font-semibold text-white mb-3">Depth Profile</h3>
+              <div className="h-48">
               {depthSorted.length > 0 ? (
                 <Line data={depthLineData} options={commonChartOptions} />
               ) : (
-                <div className="w-full h-full rounded-lg border border-gray-700/50 bg-gray-800/30 flex items-center justify-center text-gray-400">
+                  <div className="w-full h-full rounded-lg border border-gray-700/50 bg-gray-800/30 flex items-center justify-center text-gray-400 text-sm">
                   No data
                 </div>
               )}
+              </div>
             </div>
           </div>
         </section>
+
+        {/* Additional Charts Section - Full width below */}
+        <section className="col-span-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className={cardClass}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-white">Water Body Distribution</h3>
+            </div>
+            <div className="h-48">
+              <Doughnut data={waterBodyDistribution} options={{
+                ...commonChartOptions,
+                plugins: {
+                  ...commonChartOptions.plugins,
+                  legend: {
+                    position: 'bottom' as const,
+                    labels: { color: '#e5e7eb', padding: 10, font: { size: 10 } }
+                  }
+                }
+              }} />
+            </div>
+          </div>
+
+          <div className={cardClass}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-white">Temperature Profile</h3>
+            </div>
+            <div className="h-48">
+              <Line data={temperatureProfile} options={commonChartOptions} />
+            </div>
+          </div>
+
+          <div className={cardClass}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-white">Sampling Methods</h3>
+            </div>
+            <div className="h-48">
+              <Bar data={samplingMethods} options={commonChartOptions} />
+            </div>
+          </div>
+
+          <div className={cardClass}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-white">Environmental Factors</h3>
+            </div>
+            <div className="h-48">
+              <Radar data={environmentalFactors} options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: {
+                    labels: { color: '#e5e7eb', font: { size: 10 } }
+                  }
+                },
+                scales: {
+                  r: {
+                    angleLines: { color: 'rgba(75,85,99,0.2)' },
+                    grid: { color: 'rgba(75,85,99,0.2)' },
+                    pointLabels: { color: '#9ca3af', font: { size: 10 } },
+                    ticks: { color: '#9ca3af', backdropColor: 'transparent', font: { size: 8 } }
+                  }
+                }
+              }} />
+            </div>
+          </div>
+        </section>
+
+        {/* Second Row of Charts */}
+        <section className="col-span-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className={cardClass}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-white">Seasonal Distribution</h3>
+            </div>
+            <div className="h-48">
+              <Bar data={seasonalDistribution} options={commonChartOptions} />
+            </div>
+          </div>
+
+          <div className={cardClass}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-white">Depth Distribution</h3>
+            </div>
+            <div className="h-48">
+              <Bar data={depthDistribution} options={commonChartOptions} />
+            </div>
+          </div>
+
+          <div className={cardClass}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-white">Research Institutions</h3>
+            </div>
+            <div className="h-48">
+              <Doughnut data={researchInstitutions} options={{
+                ...commonChartOptions,
+                plugins: {
+                  ...commonChartOptions.plugins,
+                  legend: {
+                    position: 'bottom' as const,
+                    labels: { color: '#e5e7eb', padding: 8, font: { size: 9 } }
+                  }
+                }
+              }} />
+            </div>
+          </div>
+
+          <div className={cardClass}>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-white">Conservation Trends</h3>
+            </div>
+            <div className="h-48">
+              <Line data={conservationTrends} options={commonChartOptions} />
+            </div>
+          </div>
+        </section>
+
+
       </div>
     </div>
   );

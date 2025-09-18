@@ -24,16 +24,16 @@ export class DataService {
       this.dataPoints = lines.slice(1).map(line => {
         const values = line.split('\t');
         const dataPoint: DataPoint = {
-          scientificName: values[0] || '',
-          locality: values[1] || '',
-          eventDate: values[2] || '',
-          decimalLatitude: parseFloat(values[3]) || 0,
-          decimalLongitude: parseFloat(values[4]) || 0,
-          waterBody: values[5] || '',
-          samplingProtocol: values[6] || '',
-          minimumDepthInMeters: parseFloat(values[7]) || 0,
-          maximumDepthInMeters: parseFloat(values[8]) || 0,
-          identifiedBy: values[9] || ''
+          scientificName: values[29] || '', // scientificName is at index 29
+          locality: values[18] || '', // locality is at index 18
+          eventDate: values[12] || '', // eventDate is at index 12
+          decimalLatitude: parseFloat(values[21]) || 0, // decimalLatitude is at index 21
+          decimalLongitude: parseFloat(values[22]) || 0, // decimalLongitude is at index 22
+          waterBody: values[16] || '', // waterBody is at index 16
+          samplingProtocol: values[15] || '', // samplingProtocol is at index 15
+          minimumDepthInMeters: parseFloat(values[19]) || 0, // minimumDepthInMeters is at index 19
+          maximumDepthInMeters: parseFloat(values[20]) || 0, // maximumDepthInMeters is at index 20
+          identifiedBy: values[25] || '' // identifiedBy is at index 25
         };
         return dataPoint;
       });
