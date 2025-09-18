@@ -127,14 +127,16 @@ const Dashboard: React.FC<DashboardProps> = ({ onProjectSelect }) => {
             {/* Navigation */}
             <nav className="hidden md:flex items-center space-x-8">
               {[
-                { name: 'Home', icon: FiHome },
-                { name: 'About', icon: FiInfo },
-                { name: 'Data Sources', icon: FiDatabase },
-                { name: 'Pricing', icon: FiDollarSign }
+                { name: 'Home', icon: FiHome, href: '#' },
+                { name: 'About', icon: FiInfo, href: '#' },
+                { name: 'Data Sources', icon: FiDatabase, href: 'https://sagar-data-ingestion.vercel.app/' },
+                { name: 'Pricing', icon: FiDollarSign, href: '#' }
               ].map((item, index) => (
                 <motion.a
                   key={item.name}
-                  href="#"
+                  href={item.href}
+                  target={item.name === 'Data Sources' ? '_blank' : undefined}
+                  rel={item.name === 'Data Sources' ? 'noopener noreferrer' : undefined}
                   className="flex items-center space-x-2 text-gray-300 hover:text-marine-cyan transition-colors duration-200"
                   initial={{ opacity: 0, y: -20 }}
                   animate={{ opacity: 1, y: 0 }}
